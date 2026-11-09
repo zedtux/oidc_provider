@@ -11,8 +11,18 @@ module OIDCProvider
     attribute :code, :string, default: -> { SecureRandom.hex 32 }
     attribute :expires_at, :datetime, default: -> { 5.minutes.from_now }
 
-    serialize :scopes, JSON
-    serialize :claims, JSON
+    # Rails 7.1 introduced the `coder:` keyword argument for `serialize`, and
+    # Rails 7.2 removed the positional coder argument (its signature is now
+    # `serialize(attr_name, coder: nil, type: Object, yaml: {}, **options)`).
+    # The coder is therefore passed as a keyword argument on Rails 7.1+ and
+    # positionally on older versions, keeping the same behaviour everywhere.
+    if Gem::Version.new(ActiveSupport::VERSION::STRING) >= Gem::Version.new('7.1')
+      serialize :scopes, coder: JSON
+      serialize :claims, coder: JSON
+    else
+      serialize :scopes, JSON
+      serialize :claims, JSON
+    end
 
     def access_token
       super || (expire! && generate_access_token!)
